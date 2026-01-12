@@ -86,9 +86,9 @@ export async function GET(request: NextRequest) {
 
     // Get sales totals and distributions
     const salesData = {
-      totalRevenue: salesInRange.reduce((s, v) => s + v.totalAmount, 0),
-      subtotal: salesInRange.reduce((s, v) => s + v.subtotal, 0),
-      totalDiscounts: salesInRange.reduce((s, v) => s + v.discountAmount, 0),
+      totalRevenue: salesInRange.reduce((s: number, v: typeof salesInRange[0]) => s + v.totalAmount, 0),
+      subtotal: salesInRange.reduce((s: number, v: typeof salesInRange[0]) => s + v.subtotal, 0),
+      totalDiscounts: salesInRange.reduce((s: number, v: typeof salesInRange[0]) => s + v.discountAmount, 0),
     }
 
     // Get sales by payment method
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Daily sales trend
-    const dayKey = (d: Date) => d.toISOString().slice(0,10)
+    const dayKey = (d: Date) => d.toISOString().slice(0, 10)
     const dailyMap = new Map<string, { date: string; salesCount: number; totalAmount: number }>()
     // seed all days to ensure continuity
     for (let i = 0; i <= days; i++) {
@@ -148,12 +148,12 @@ export async function GET(request: NextRequest) {
     })
 
     const totalInventoryValue = inventoryProducts.reduce(
-      (sum, product) => sum + (product.stockQuantity * product.costPrice),
+      (sum: number, product: { stockQuantity: number, costPrice: number, sellingPrice: number }) => sum + (product.stockQuantity * product.costPrice),
       0
     )
 
     const totalRetailValue = inventoryProducts.reduce(
-      (sum, product) => sum + (product.stockQuantity * product.sellingPrice),
+      (sum: number, product: { stockQuantity: number, costPrice: number, sellingPrice: number }) => sum + (product.stockQuantity * product.sellingPrice),
       0
     )
 
@@ -212,17 +212,17 @@ export async function GET(request: NextRequest) {
 
     // Sales by category
     const categoryMap = new Map<string, { category: string; totalRevenue: number; totalQuantity: number }>()
-  for (const agg of Array.from(topMap.values())) {
+    for (const agg of Array.from(topMap.values())) {
       const cat = agg.categoryName
       const entry = categoryMap.get(cat) || { category: cat, totalRevenue: 0, totalQuantity: 0 }
       entry.totalRevenue += agg.totalRevenue
       entry.totalQuantity += agg.totalQuantity
       categoryMap.set(cat, entry)
     }
-    const salesByCategory = Array.from(categoryMap.values()).sort((a,b) => b.totalRevenue - a.totalRevenue)
+    const salesByCategory = Array.from(categoryMap.values()).sort((a, b) => b.totalRevenue - a.totalRevenue)
 
     // Previous period comparisons
-    const prevRevenue = prevSales.reduce((s, v) => s + v.totalAmount, 0)
+    const prevRevenue = prevSales.reduce((s: number, v: typeof prevSales[0]) => s + v.totalAmount, 0)
     const prevCount = prevSales.length
     const totalRevenue = salesData.totalRevenue || 0
     const totalSales = salesInRange.length
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
     const salesChangePct = prevCount === 0 ? (totalSales > 0 ? 100 : 0) : ((totalSales - prevCount) / prevCount) * 100
 
     // Profitability
-    const totalCOGS = salesInRange.reduce((sum, s) => sum + s.saleItems.reduce((sumI, si) => sumI + si.quantity * (si.product?.costPrice || 0), 0), 0)
+    const totalCOGS = salesInRange.reduce((sum: number, s: typeof salesInRange[0]) => sum + s.saleItems.reduce((sumI: number, si: typeof s.saleItems[0]) => sumI + si.quantity * (si.product?.costPrice || 0), 0), 0)
     const grossProfit = totalRevenue - totalCOGS
     const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
     const averageOrderValue = totalSales > 0 ? totalRevenue / totalSales : 0
@@ -244,21 +244,21 @@ export async function GET(request: NextRequest) {
       entry.totalAmount += s.totalAmount
       cashierMap.set(key, entry)
     }
-    
+
     // Fetch cashier names
     const cashierIds = Array.from(cashierMap.keys()).filter(id => id !== 'unknown')
     const users = await db.user.findMany({
       where: { id: { in: cashierIds } },
       select: { id: true, fullName: true, username: true },
     })
-    const userMap = new Map(users.map(u => [u.id, u.fullName || u.username]))
-    
+    const userMap = new Map<string, string>(users.map((u: typeof users[0]) => [u.id, u.fullName || u.username]))
+
     // Update cashier names
     Array.from(cashierMap.entries()).forEach(([id, entry]) => {
       entry.cashierName = userMap.get(id) || id
     })
-    
-    const salesByCashier = Array.from(cashierMap.values()).sort((a,b) => b.totalAmount - a.totalAmount)
+
+    const salesByCashier = Array.from(cashierMap.values()).sort((a, b) => b.totalAmount - a.totalAmount)
 
     // Peak hours (0-23)
     const peakHours = Array.from({ length: 24 }, (_, h) => ({ hour: h, salesCount: 0, totalAmount: 0 }))
@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
         prodAgg.set(p.id, prev)
       }
     }
-    const slowMovers = Array.from(prodAgg.values()).filter(x => x.soldQty > 0).sort((a,b) => a.soldQty - b.soldQty).slice(0, 10)
+    const slowMovers = Array.from(prodAgg.values()).filter(x => x.soldQty > 0).sort((a, b) => a.soldQty - b.soldQty).slice(0, 10)
 
     // Dead stock: active products with no sales in range and stock > 0
     const soldIds = new Set(Array.from(prodAgg.keys()))
@@ -318,14 +318,14 @@ export async function GET(request: NextRequest) {
         if (daysLeft < 7) coverageRisks.push({ id: p.id, name: p.name, sku: p.sku, daysLeft, stockQuantity: p.stockQuantity })
       }
     }
-    coverageRisks.sort((a,b) => a.daysLeft - b.daysLeft)
+    coverageRisks.sort((a, b) => a.daysLeft - b.daysLeft)
     const coverageRisksTop = coverageRisks.slice(0, 10)
 
     // Discounts & Taxes
-    const totalTaxCollected = salesInRange.reduce((s, v) => s + (v.taxAmount || 0), 0)
+    const totalTaxCollected = salesInRange.reduce((s: number, v: typeof salesInRange[0]) => s + (v.taxAmount || 0), 0)
     // Sum sale-level discount + item-level discounts
-    const totalSaleLevelDiscount = salesInRange.reduce((s, v) => s + (v.discountAmount || 0), 0)
-    const totalItemLevelDiscount = salesInRange.reduce((s, sale) => s + sale.saleItems.reduce((ss, si) => ss + (si.discount || 0), 0), 0)
+    const totalSaleLevelDiscount = salesInRange.reduce((s: number, v: typeof salesInRange[0]) => s + (v.discountAmount || 0), 0)
+    const totalItemLevelDiscount = salesInRange.reduce((s: number, sale: typeof salesInRange[0]) => s + sale.saleItems.reduce((ss: number, si: typeof sale.saleItems[0]) => ss + (si.discount || 0), 0), 0)
     const totalDiscountsAll = totalSaleLevelDiscount + totalItemLevelDiscount
     const averageDiscountPerOrder = totalSales > 0 ? totalDiscountsAll / totalSales : 0
     // Top discounted products by item-level discount sum
@@ -339,7 +339,7 @@ export async function GET(request: NextRequest) {
         discAgg.set(key, prev)
       }
     }
-    const topDiscountedProducts = Array.from(discAgg.values()).sort((a,b) => b.discountTotal - a.discountTotal).slice(0, 10)
+    const topDiscountedProducts = Array.from(discAgg.values()).sort((a, b) => b.discountTotal - a.discountTotal).slice(0, 10)
 
     return NextResponse.json({
       data: {
