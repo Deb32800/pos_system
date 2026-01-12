@@ -3,12 +3,12 @@ name: Build Electron App
 on:
   push:
     branches: [main, master]
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
     strategy:
-      fail-fast: false  # Don't cancel other builds if one fails
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -23,6 +23,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Python (for node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python setuptools
+        run: pip install setuptools
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
