@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  products    Product[]
+  
+  @@map("categories")
+}
+
+model Product {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  sku            String    @unique
+  barcode        String?   @unique
+  costPrice      Float
+  sellingPrice   Float
+  taxPercent     Float     @default(0)
+  stockQuantity  Int       @default(0)
+  minStockLevel  Int       @default(0)
+  maxStockLevel  Int       @default(1000)
+  isActive       Boolean   @default(true)
+  categoryId     String
+  imagePath      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  category       Category        @relation(fields: [categoryId], references: [id])
+  saleItems      SaleItem[]
+  stockMovements StockMovement[]
+  
+  @@map("products")
+  @@index([categoryId])
+  @@index([stockQuantity])
+  @@index([name])
+}
+
+model Sale {
+  id                    String        @id @default(cuid())
+  saleNumber            String        @unique
+  totalAmount           Float
+  subtotal              Float
+  taxAmount             Float         @default(0)
+  discountAmount        Float         @default(0)
+  paymentMethod         PaymentMethod @default(CASH)
+  status                SaleStatus    @default(COMPLETED)
+  notes                 String?
+  cashierId             String        // User ID of the cashier
+  stripePaymentIntentId String?       // Stripe pi_xxx ID for card payments
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  saleItems     SaleItem[]
+  
+  @@map("sales")
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+  discount    Float    @default(0)
+  
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@map("sale_items")
+}
+
+model StockMovement {
+  id          String        @id @default(cuid())
+  productId   String
+  type        MovementType
+  quantity    Int
+  reason      String
+  reference   String?       // Sale ID, PO number, etc.
+  notes       String?
+  createdAt   DateTime      @default(now())
+  
+  product     Product       @relation(fields: [productId], references: [id])
+  
+  @@map("stock_movements")
+  @@index([productId, createdAt])
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  
+  @@map("settings")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  DIGITAL_WALLET
+  CREDIT
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  CANCELLED
+}
+
+enum MovementType {
+  SALE          // Stock out due to sale
+  PURCHASE      // Stock in from supplier
+  ADJUSTMENT    // Manual adjustment
+  RETURN        // Stock in from return
+  DAMAGE        // Stock out due to damage
+  TRANSFER      // Stock movement between locations
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  username           String    @unique
+  passwordHash       String
+  fullName           String
+  role               UserRole  @default(STAFF)
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  lastLoginAt        DateTime?
+  lastLogoutAt       DateTime?
+  
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
