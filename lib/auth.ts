@@ -56,7 +56,7 @@ export async function setSessionCookie(token: string): Promise<void> {
     const cookieStore = await cookies()
     cookieStore.set('session', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Must be false for Electron (runs on localhost HTTP, not HTTPS)
         sameSite: 'lax',
         maxAge: SESSION_DURATION / 1000,
         path: '/',
