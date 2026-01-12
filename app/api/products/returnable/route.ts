@@ -25,15 +25,15 @@ export async function GET(request: NextRequest) {
         })
 
         // Build a map of productId -> maxReturnable
-        const soldMap = new Map(soldItems.map(s => [s.productId, s._sum.quantity || 0]))
-        const returnedMap = new Map(returnedItems.map(r => [r.productId, r._sum.quantity || 0]))
+        const soldMap = new Map(soldItems.map((s: typeof soldItems[0]) => [s.productId, s._sum.quantity || 0]))
+        const returnedMap = new Map(returnedItems.map((r: typeof returnedItems[0]) => [r.productId, r._sum.quantity || 0]))
 
         // Calculate returnable for each product that has been sold
         const returnableData: Record<string, number> = {}
         for (const [productId, sold] of soldMap) {
             const returned = returnedMap.get(productId) || 0
-            const maxReturnable = Math.max(0, sold - returned)
-            returnableData[productId] = maxReturnable
+            const maxReturnable = Math.max(0, (sold as number) - (returned as number))
+            returnableData[productId as string] = maxReturnable
         }
 
         return NextResponse.json({ data: returnableData })

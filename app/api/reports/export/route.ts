@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
     const range = (searchParams.get('range') as RangeKey) || '30d'
     const start = searchParams.get('start')
     const end = searchParams.get('end')
-  const type = (searchParams.get('type') as ReportType) || 'inventory_list'
-  const format = (searchParams.get('format') || 'xlsx').toLowerCase()
+    const type = (searchParams.get('type') as ReportType) || 'inventory_list'
+    const format = (searchParams.get('format') || 'xlsx').toLowerCase()
 
     const { from, to } = getDateRange(range, start, end)
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     if (type === 'inventory_list') {
       // Build per-product snapshot rows, category-wise
       const rows = products
-        .map(p => {
+        .map((p: typeof products[0]) => {
           const stockValueCost = p.stockQuantity * p.costPrice
           const stockValueRetail = p.stockQuantity * p.sellingPrice
           const stockValueRetailRounded = Number(stockValueRetail.toFixed(2))
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
             Status: status,
           }
         })
-        .sort((a, b) => (a.Category + a['Product Name']).localeCompare(b.Category + b['Product Name']))
+        .sort((a: { Category: string, 'Product Name': string }, b: { Category: string, 'Product Name': string }) => (a.Category + a['Product Name']).localeCompare(b.Category + b['Product Name']))
 
       if (format === 'json') {
         return new Response(JSON.stringify({ type, headers: Object.keys(rows[0] || {}), data: rows.slice(0, 200) }), {
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       const ws = XLSX.utils.json_to_sheet(rows, { header: Object.keys(rows[0] || {}) })
       XLSX.utils.book_append_sheet(wb, ws, 'Inventory List')
       const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
-      const fileName = `Inventory_List_${from.toISOString().slice(0,10)}_to_${to.toISOString().slice(0,10)}.xlsx`
+      const fileName = `Inventory_List_${from.toISOString().slice(0, 10)}_to_${to.toISOString().slice(0, 10)}.xlsx`
       return new Response(buf, {
         headers: {
           'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
         where: { createdAt: { gt: to } },
         _sum: { quantity: true },
       })
-      const netAfterMap = new Map<string, number>(afterAgg.map(a => [a.productId, a._sum.quantity || 0]))
+      const netAfterMap = new Map<string, number>(afterAgg.map((a: typeof afterAgg[0]) => [a.productId, a._sum.quantity || 0]))
 
       // Determine if PURCHASE movement type exists in the system at all
       const purchaseExists = (await db.stockMovement.count({ where: { type: 'PURCHASE' } })) > 0
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Build rows with robust opening/closing calculation
-      const baseRows = products.map(p => {
+      const baseRows = products.map((p: typeof products[0]) => {
         const t = perTypeMap.get(p.id) || {}
         const netInRange = netInRangeMap.get(p.id) || 0
         const netAfter = netAfterMap.get(p.id) || 0
@@ -183,10 +183,10 @@ export async function GET(request: NextRequest) {
         const unitCost = p.costPrice
         const stockValue = closing * unitCost
         const stockStatus = closing === 0 ? 'Out of Stock' : closing <= p.minStockLevel ? 'Low Stock' : 'In Stock'
-  const sale = salesAgg.get(p.id) || { sold: 0, revenue: 0, cost: 0 }
-  const grossProfit = sale.revenue - sale.cost
-  const grossProfitRounded = Number(grossProfit.toFixed(2))
-  const marginPct = sale.revenue > 0 ? (grossProfit / sale.revenue) * 100 : 0
+        const sale = salesAgg.get(p.id) || { sold: 0, revenue: 0, cost: 0 }
+        const grossProfit = sale.revenue - sale.cost
+        const grossProfitRounded = Number(grossProfit.toFixed(2))
+        const marginPct = sale.revenue > 0 ? (grossProfit / sale.revenue) * 100 : 0
         const row: Record<string, number | string> = {
           'SKU': p.sku || p.id,
           'Product Name': p.name,
@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
       const ws = XLSX.utils.json_to_sheet(baseRows, { header: headers })
       XLSX.utils.book_append_sheet(wb, ws, 'Inventory Performance')
       const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
-      const fileName = `Inventory_Performance_${from.toISOString().slice(0,10)}_to_${to.toISOString().slice(0,10)}.xlsx`
+      const fileName = `Inventory_Performance_${from.toISOString().slice(0, 10)}_to_${to.toISOString().slice(0, 10)}.xlsx`
       return new Response(buf, {
         headers: {
           'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

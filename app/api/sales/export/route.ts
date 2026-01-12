@@ -103,12 +103,12 @@ export async function GET(request: NextRequest) {
     })
 
     // Fetch cashier user info for all sales
-    const cashierIds = [...new Set(sales.map(s => s.cashierId))]
+    const cashierIds = [...new Set(sales.map((s: typeof sales[0]) => s.cashierId))]
     const users = await db.user.findMany({
       where: { id: { in: cashierIds } },
       select: { id: true, fullName: true, username: true },
     })
-    const userMap = new Map(users.map(u => [u.id, u]))
+    const userMap = new Map<string, { id: string; fullName: string | null; username: string }>(users.map((u: typeof users[0]) => [u.id, u]))
 
     // Helper to create basic CSV response (for other export types)
     const toCsvResponse = (headersArr: string[], rowsArr: (string | number)[][], fileBase: string) => {
@@ -475,9 +475,9 @@ export async function GET(request: NextRequest) {
 
     // Default fallback to transactions
     const fallbackHeaders = ['Sale Number', 'Date', 'Time', 'Payment Method', 'Status', 'Items Count', 'Subtotal', 'Total']
-    const fallbackRows: (string | number)[][] = sales.map(s => {
+    const fallbackRows: (string | number)[][] = sales.map((s: typeof sales[0]) => {
       const d = new Date(s.createdAt)
-      const itemsCount = s.saleItems.reduce((n, si) => n + si.quantity, 0)
+      const itemsCount = s.saleItems.reduce((n: number, si: typeof s.saleItems[0]) => n + si.quantity, 0)
       return [s.saleNumber, d.toLocaleDateString(), d.toLocaleTimeString(), String(s.paymentMethod).toLowerCase(), String(s.status).toLowerCase(), itemsCount, s.subtotal.toFixed(2), s.totalAmount.toFixed(2)]
     })
     if (format === 'json') {

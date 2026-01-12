@@ -1,5 +1,4 @@
 import { db } from './db'
-import type { Prisma } from '@prisma/client'
 
 // Types for the database models
 export type Category = {
@@ -75,7 +74,7 @@ export const dataService = {
   async getProducts(search?: string, categoryId?: string, lowStock?: boolean) {
     try {
       const where: any = { isActive: true }
-      
+
       if (search) {
         where.OR = [
           { name: { contains: search } },
@@ -83,11 +82,11 @@ export const dataService = {
           { barcode: { contains: search } },
         ]
       }
-      
+
       if (categoryId) {
         where.categoryId = categoryId
       }
-      
+
       if (lowStock) {
         where.stockQuantity = { lte: db.product.fields.minStockLevel }
       }
@@ -118,7 +117,7 @@ export const dataService = {
     }
   },
 
-  async createProduct(productData: Prisma.ProductUncheckedCreateInput) {
+  async createProduct(productData: any) {
     try {
       const product = await db.product.create({
         data: productData,
@@ -131,7 +130,7 @@ export const dataService = {
     }
   },
 
-  async updateProduct(id: string, updates: Prisma.ProductUncheckedUpdateInput) {
+  async updateProduct(id: string, updates: any) {
     try {
       const product = await db.product.update({
         where: { id },
@@ -188,7 +187,7 @@ export const dataService = {
   async getSales(page = 1, limit = 20) {
     try {
       const skip = (page - 1) * limit
-      
+
       const [sales, total] = await Promise.all([
         db.sale.findMany({
           include: {
@@ -203,10 +202,10 @@ export const dataService = {
         db.sale.count(),
       ])
 
-      return { 
-        data: sales, 
+      return {
+        data: sales,
         pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-        error: null 
+        error: null
       }
     } catch (error) {
       console.error('Error fetching sales:', error)
@@ -236,7 +235,7 @@ export const dataService = {
       const saleNumber = `SALE-${Date.now()}`
 
       // Create sale transaction
-      const result = await db.$transaction(async (tx) => {
+      const result = await db.$transaction(async (tx: typeof db) => {
         // Create sale
         const sale = await tx.sale.create({
           data: {
@@ -357,16 +356,16 @@ export const dataService = {
       })
 
       // Fetch cashier names for recent sales
-      const cashierIds = [...new Set(recentSales.map(s => s.cashierId))]
+      const cashierIds = [...new Set(recentSales.map((s: typeof recentSales[0]) => s.cashierId))]
       const users = await db.user.findMany({
         where: { id: { in: cashierIds } },
         select: { id: true, fullName: true, username: true },
       })
-      const userMap = new Map(users.map(u => [u.id, u.fullName || u.username]))
+      const userMap = new Map<string, string>(users.map((u: typeof users[0]) => [u.id, u.fullName || u.username]))
 
       // Combine sales and returns into activity log, sorted by date
       const activityLog = [
-        ...recentSales.map(sale => ({
+        ...recentSales.map((sale: typeof recentSales[0]) => ({
           id: sale.id,
           type: 'sale' as const,
           reference: sale.saleNumber,
@@ -376,7 +375,7 @@ export const dataService = {
           cashierId: sale.cashierId,
           cashierName: userMap.get(sale.cashierId) || sale.cashierId,
         })),
-        ...recentReturns.map(ret => ({
+        ...recentReturns.map((ret: typeof recentReturns[0]) => ({
           id: ret.id,
           type: 'return' as const,
           reference: ret.reference,

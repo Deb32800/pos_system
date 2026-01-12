@@ -154,15 +154,15 @@ export async function GET(request: NextRequest) {
             })
 
             const similarProducts = allProducts
-                .map(p => ({
+                .map((p: typeof allProducts[0]) => ({
                     product: p,
                     similarity: calculateSimilarity(name, p.name),
                 }))
-                .filter(x => x.similarity >= 0.5) // 50% threshold for "similar"
-                .sort((a, b) => b.similarity - a.similarity)
+                .filter((x: { product: typeof allProducts[0]; similarity: number }) => x.similarity >= 0.5) // 50% threshold for "similar"
+                .sort((a: { similarity: number }, b: { similarity: number }) => b.similarity - a.similarity)
                 .slice(0, 8) // Top 8 matches
 
-            results.nameMatches = similarProducts.map(x => ({
+            results.nameMatches = similarProducts.map((x: { product: typeof allProducts[0]; similarity: number }) => ({
                 id: x.product.id,
                 name: x.product.name,
                 sku: x.product.sku,

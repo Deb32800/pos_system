@@ -48,11 +48,11 @@ export async function GET(request: NextRequest) {
     ])
 
     // Calculate inventory value
-    const inventoryValue = products.reduce((sum, product) => {
+    const inventoryValue = products.reduce((sum: number, product: typeof products[0]) => {
       return sum + (product.stockQuantity * product.costPrice)
     }, 0)
 
-    const retailValue = products.reduce((sum, product) => {
+    const retailValue = products.reduce((sum: number, product: typeof products[0]) => {
       return sum + (product.stockQuantity * product.sellingPrice)
     }, 0)
 

@@ -96,7 +96,7 @@ export async function DELETE(
     }
 
     // Process refund transaction
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: typeof db) => {
       // Update sale status
       const updatedSale = await tx.sale.update({
         where: { id: params.id },

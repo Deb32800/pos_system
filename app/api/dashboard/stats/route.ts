@@ -69,16 +69,16 @@ export async function GET() {
         })
 
         // Fetch cashier names for recent sales
-        const cashierIds = [...new Set(recentSales.map(s => s.cashierId))]
+        const cashierIds = [...new Set(recentSales.map((s: typeof recentSales[0]) => s.cashierId))]
         const users = await db.user.findMany({
             where: { id: { in: cashierIds } },
             select: { id: true, fullName: true, username: true },
         })
-        const userMap = new Map(users.map(u => [u.id, u.fullName || u.username]))
+        const userMap = new Map<string, string>(users.map((u: typeof users[0]) => [u.id, u.fullName || u.username]))
 
         // Combine sales and returns into activity log
         const activityLog = [
-            ...recentSales.map(sale => ({
+            ...recentSales.map((sale: typeof recentSales[0]) => ({
                 id: sale.id,
                 type: 'sale' as const,
                 reference: sale.saleNumber,
@@ -88,7 +88,7 @@ export async function GET() {
                 cashierId: sale.cashierId,
                 cashierName: userMap.get(sale.cashierId) || sale.cashierId,
             })),
-            ...recentReturns.map(ret => ({
+            ...recentReturns.map((ret: typeof recentReturns[0]) => ({
                 id: ret.id,
                 type: 'return' as const,
                 reference: ret.reference,

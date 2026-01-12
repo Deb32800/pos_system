@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process adjustment transaction
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: typeof db) => {
       // Calculate new stock quantity
       let newQuantity = product.stockQuantity + validatedData.quantity
 

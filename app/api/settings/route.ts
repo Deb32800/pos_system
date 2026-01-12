@@ -15,7 +15,7 @@ export async function GET() {
     const settings = await db.setting.findMany({
       orderBy: { key: 'asc' },
     })
-    const map = settings.reduce((acc: Record<string, string>, s) => {
+    const map = settings.reduce((acc: Record<string, string>, s: typeof settings[0]) => {
       acc[s.key] = s.value
       return acc
     }, {})

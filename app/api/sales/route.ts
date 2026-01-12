@@ -49,17 +49,17 @@ export async function GET(request: NextRequest) {
     ])
 
     // Fetch cashier user info for all sales
-    const cashierIds = [...new Set(sales.map(s => s.cashierId))]
+    const cashierIds = [...new Set(sales.map((s: typeof sales[0]) => s.cashierId))]
     const users = await db.user.findMany({
       where: { id: { in: cashierIds } },
       select: { id: true, fullName: true, username: true },
     })
-    const userMap = new Map(users.map(u => [u.id, u]))
+    const userMap = new Map(users.map((u: typeof users[0]) => [u.id, u]))
 
     // Fetch return info for refunded sales
     const refundedSaleNumbers = sales
-      .filter(s => s.status === 'REFUNDED')
-      .map(s => s.saleNumber)
+      .filter((s: typeof sales[0]) => s.status === 'REFUNDED')
+      .map((s: typeof sales[0]) => s.saleNumber)
 
     const returnMovements = refundedSaleNumbers.length > 0
       ? await db.stockMovement.findMany({
@@ -73,14 +73,14 @@ export async function GET(request: NextRequest) {
       })
       : []
 
-    const returnInfoMap = new Map(returnMovements.map(m => [m.reference, {
+    const returnInfoMap = new Map(returnMovements.map((m: typeof returnMovements[0]) => [m.reference, {
       reason: m.reason,
       notes: m.notes,
       returnedAt: m.createdAt,
     }]))
 
     // Attach user info and return info to each sale
-    const salesWithUser = sales.map(sale => ({
+    const salesWithUser = sales.map((sale: typeof sales[0]) => ({
       ...sale,
       cashier: userMap.get(sale.cashierId) || null,
       returnInfo: sale.status === 'REFUNDED' ? returnInfoMap.get(sale.saleNumber) || null : null,
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     // Check stock availability
     for (const item of validatedData.items) {
-      const product = products.find(p => p.id === item.productId)
+      const product = products.find((p: typeof products[0]) => p.id === item.productId)
       if (!product || product.stockQuantity < item.quantity) {
         return NextResponse.json(
           { error: `Insufficient stock for ${product?.name || 'product'}` },
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     const saleNumber = `SALE-${Date.now()}`
 
     // Create sale transaction
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: typeof db) => {
       // Fetch all products referenced and map for quick access
       const productIds = validatedData.items.map(i => i.productId)
       const products = await tx.product.findMany({
@@ -156,7 +156,8 @@ export async function POST(request: NextRequest) {
       if (products.length !== productIds.length) {
         throw new Error('One or more products not found or inactive')
       }
-      const pmap = new Map(products.map(p => [p.id, p]))
+      type ProductType = { id: string; name: string; sku: string; sellingPrice: number; taxPercent: number; stockQuantity: number }
+      const pmap = new Map<string, ProductType>(products.map((p: ProductType) => [p.id, p]))
 
       // Validate stock and compute server-side totals
       let subtotal = 0

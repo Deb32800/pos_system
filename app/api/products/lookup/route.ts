@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
             where: { key: { in: ['externalApiUrl', 'externalApiKey'] } }
         })
 
-        const externalApiUrl = settings.find(s => s.key === 'externalApiUrl')?.value
-        const externalApiKey = settings.find(s => s.key === 'externalApiKey')?.value
+        const externalApiUrl = settings.find((s: typeof settings[0]) => s.key === 'externalApiUrl')?.value
+        const externalApiKey = settings.find((s: typeof settings[0]) => s.key === 'externalApiKey')?.value
 
         if (externalApiUrl) {
             try {
