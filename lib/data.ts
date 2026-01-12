@@ -235,7 +235,7 @@ export const dataService = {
       const saleNumber = `SALE-${Date.now()}`
 
       // Create sale transaction
-      const result = await db.$transaction(async (tx: typeof db) => {
+      const result = await db.$transaction(async (tx) => {
         // Create sale
         const sale = await tx.sale.create({
           data: {

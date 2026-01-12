@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     const saleNumber = `SALE-${Date.now()}`
 
     // Create sale transaction
-    const result = await db.$transaction(async (tx: typeof db) => {
+    const result = await db.$transaction(async (tx) => {
       // Fetch all products referenced and map for quick access
       const productIds = validatedData.items.map(i => i.productId)
       const products = await tx.product.findMany({
