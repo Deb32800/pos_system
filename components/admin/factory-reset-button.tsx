@@ -99,12 +99,13 @@ export function FactoryResetButton() {
     return (
         <>
             <Button
-                variant="destructive"
+                variant="ghost"
+                size="sm"
                 onClick={openDialog}
-                className="gap-2"
+                className="gap-2 text-muted-foreground hover:text-destructive"
             >
                 <Trash2 className="h-4 w-4" />
-                Factory Reset
+                Reset
             </Button>
 
             <Dialog open={step !== 'closed'} onOpenChange={(open) => !open && closeDialog()}>
