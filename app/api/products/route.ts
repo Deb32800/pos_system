@@ -51,25 +51,28 @@ export async function GET(request: NextRequest) {
       where.categoryId = categoryId
     }
 
-    if (lowStock === 'true') {
-      where.stockQuantity = { lte: db.product.fields.minStockLevel }
+    // Note: lowStock filter is handled after query since Prisma doesn't support column-to-column comparison
+    const needsLowStockFilter = lowStock === 'true'
+
+    let products = await db.product.findMany({
+      where,
+      include: {
+        category: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Filter for low stock in JS if requested
+    if (needsLowStockFilter) {
+      products = products.filter(p => p.stockQuantity <= p.minStockLevel)
     }
 
-    const [products, total] = await Promise.all([
-      db.product.findMany({
-        where,
-        include: {
-          category: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      db.product.count({ where }),
-    ])
+    // Apply pagination
+    const total = products.length
+    const paginatedProducts = products.slice(skip, skip + limit)
 
     return NextResponse.json({
-      data: products,
+      data: paginatedProducts,
       pagination: {
         page,
         limit,

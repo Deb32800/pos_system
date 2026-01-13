@@ -14,6 +14,7 @@ import { Printer, Bluetooth, Usb, Wifi, Save, CreditCard, RotateCcw, CheckCircle
 import { useSettings } from "@/components/settings-provider"
 import { toast } from "sonner"
 import { isElectron, listSerialPorts, testPrinterConnection, openCashDrawer, printReceipt } from "@/lib/hardware"
+import { FactoryResetButton } from "@/components/admin/factory-reset-button"
 
 type SettingsMap = Record<string, string>
 
@@ -444,6 +445,24 @@ export default function SettingsPage() {
                 <div className="text-sm text-muted-foreground">Preview uses header/footer above in your print template.</div>
                 <Button variant="outline" onClick={handlePrintTestReceipt}><Printer className="mr-2 h-4 w-4" />Print Test Receipt</Button>
               </div>
+
+              {/* Factory Reset Section - Only in Electron */}
+              {inElectron && (
+                <>
+                  <Separator className="my-6" />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-red-600">Danger Zone</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Factory reset will delete all data and restore default settings.
+                        </p>
+                      </div>
+                      <FactoryResetButton />
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

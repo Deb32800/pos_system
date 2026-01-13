@@ -5,12 +5,9 @@ import { db } from '@/lib/db'
 // GET /api/products/low-stock - Get products with low stock
 export async function GET(request: NextRequest) {
   try {
-    const products = await db.product.findMany({
+    const allProducts = await db.product.findMany({
       where: {
         isActive: true,
-        stockQuantity: {
-          lte: db.product.fields.minStockLevel,
-        },
       },
       include: {
         category: true,
@@ -20,6 +17,9 @@ export async function GET(request: NextRequest) {
         { name: 'asc' },
       ],
     })
+
+    // Filter for low stock (stockQuantity <= minStockLevel)
+    const products = allProducts.filter(p => p.stockQuantity <= p.minStockLevel)
 
     return NextResponse.json({ data: products })
   } catch (error) {

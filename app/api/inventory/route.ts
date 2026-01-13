@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const lowStock = searchParams.get('lowStock')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
-    const skip = (page - 1) * limit
 
     const where: any = {
       isActive: true,
@@ -20,44 +19,51 @@ export async function GET(request: NextRequest) {
       where.categoryId = categoryId
     }
 
-    if (lowStock === 'true') {
-      where.stockQuantity = {
-        lte: db.product.fields.minStockLevel,
-      }
-    }
-
-    const [products, total] = await Promise.all([
-      db.product.findMany({
-        where,
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-            },
+    // Fetch all products matching base criteria
+    let products = await db.product.findMany({
+      where,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
           },
         },
-        orderBy: [
-          { stockQuantity: 'asc' },
-          { name: 'asc' },
-        ],
-        skip,
-        take: limit,
-      }),
-      db.product.count({ where }),
-    ])
+      },
+      orderBy: [
+        { stockQuantity: 'asc' },
+        { name: 'asc' },
+      ],
+    })
+
+    // Filter for low stock if requested (stockQuantity <= minStockLevel)
+    if (lowStock === 'true') {
+      products = products.filter(p => p.stockQuantity <= p.minStockLevel)
+    }
+
+    // Calculate low stock count (for all products, not just filtered)
+    const allProducts = await db.product.findMany({
+      where: { isActive: true, ...(categoryId ? { categoryId } : {}) },
+      select: { stockQuantity: true, minStockLevel: true },
+    })
+    const lowStockCount = allProducts.filter(p => p.stockQuantity <= p.minStockLevel).length
+
+    // Apply pagination
+    const total = products.length
+    const skip = (page - 1) * limit
+    const paginatedProducts = products.slice(skip, skip + limit)
 
     // Calculate inventory value
-    const inventoryValue = products.reduce((sum: number, product: typeof products[0]) => {
+    const inventoryValue = paginatedProducts.reduce((sum: number, product: typeof paginatedProducts[0]) => {
       return sum + (product.stockQuantity * product.costPrice)
     }, 0)
 
-    const retailValue = products.reduce((sum: number, product: typeof products[0]) => {
+    const retailValue = paginatedProducts.reduce((sum: number, product: typeof paginatedProducts[0]) => {
       return sum + (product.stockQuantity * product.sellingPrice)
     }, 0)
 
     return NextResponse.json({
-      data: products,
+      data: paginatedProducts,
       pagination: {
         page,
         limit,
@@ -68,14 +74,7 @@ export async function GET(request: NextRequest) {
         totalProducts: total,
         totalStockValue: inventoryValue,
         totalRetailValue: retailValue,
-        lowStockCount: await db.product.count({
-          where: {
-            ...where,
-            stockQuantity: {
-              lte: db.product.fields.minStockLevel,
-            },
-          },
-        }),
+        lowStockCount,
       },
     })
   } catch (error) {

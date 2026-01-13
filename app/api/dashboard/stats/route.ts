@@ -32,13 +32,9 @@ export async function GET() {
             db.product.findMany({
                 where: {
                     isActive: true,
-                    stockQuantity: {
-                        lte: db.product.fields.minStockLevel,
-                    },
                 },
                 include: { category: true },
-                take: 10,
-            }),
+            }).then(products => products.filter(p => p.stockQuantity <= p.minStockLevel).slice(0, 10)),
             db.sale.findMany({
                 include: {
                     saleItems: {

@@ -87,15 +87,16 @@ export const dataService = {
         where.categoryId = categoryId
       }
 
-      if (lowStock) {
-        where.stockQuantity = { lte: db.product.fields.minStockLevel }
-      }
-
-      const products = await db.product.findMany({
+      // Note: lowStock filter handled after query since Prisma doesn't support column-to-column comparison
+      let products = await db.product.findMany({
         where,
         include: { category: true },
         orderBy: { name: 'asc' },
       })
+
+      if (lowStock) {
+        products = products.filter(p => p.stockQuantity <= p.minStockLevel)
+      }
 
       return { data: products, error: null }
     } catch (error) {
@@ -317,15 +318,9 @@ export const dataService = {
           },
         }),
         db.product.findMany({
-          where: {
-            isActive: true,
-            stockQuantity: {
-              lte: db.product.fields.minStockLevel,
-            },
-          },
+          where: { isActive: true },
           include: { category: true },
-          take: 10,
-        }),
+        }).then(products => products.filter(p => p.stockQuantity <= p.minStockLevel).slice(0, 10)),
         db.sale.findMany({
           include: {
             saleItems: {

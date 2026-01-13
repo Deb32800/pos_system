@@ -747,6 +747,54 @@ ipcMain.handle('app:info', () => ({
   port: currentPort,
 }))
 
+// Factory Reset - Delete all user data and restart
+ipcMain.handle('app:factory-reset', async () => {
+  console.log('=== FACTORY RESET INITIATED ===')
+
+  const userDataPath = getUserDataPath()
+  console.log('User data path:', userDataPath)
+
+  try {
+    // Files and directories to delete
+    const itemsToDelete = [
+      path.join(userDataPath, 'data', 'pos.db'),      // Database
+      path.join(userDataPath, 'data', 'pos.db-journal'), // SQLite journal
+      path.join(userDataPath, 'uploads'),              // Uploads folder
+      path.join(userDataPath, '.jwt-secret'),          // JWT secret
+      path.join(userDataPath, 'logs'),                 // Logs folder
+    ]
+
+    for (const itemPath of itemsToDelete) {
+      if (fs.existsSync(itemPath)) {
+        const stat = fs.statSync(itemPath)
+        if (stat.isDirectory()) {
+          fs.rmSync(itemPath, { recursive: true, force: true })
+          console.log('Deleted directory:', itemPath)
+        } else {
+          fs.unlinkSync(itemPath)
+          console.log('Deleted file:', itemPath)
+        }
+      }
+    }
+
+    console.log('=== FACTORY RESET COMPLETE - RESTARTING ===')
+
+    // Restart the app
+    app.relaunch()
+    app.exit(0)
+
+    return { success: true }
+  } catch (error) {
+    console.error('Factory reset error:', error)
+    return { success: false, error: error.message }
+  }
+})
+
+// Get user data path for display
+ipcMain.handle('app:get-user-data-path', () => {
+  return getUserDataPath()
+})
+
 // Network Printer (ESC/POS over TCP)
 ipcMain.handle('printer:print-network', async (event, { ip, port, data }) => {
   return new Promise((resolve, reject) => {

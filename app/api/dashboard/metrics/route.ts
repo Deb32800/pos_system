@@ -34,14 +34,10 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       db.product.count({ where: { isActive: true } }),
       db.category.count({ where: { isActive: true } }),
-      db.product.count({
-        where: {
-          isActive: true,
-          stockQuantity: {
-            lte: db.product.fields.minStockLevel,
-          },
-        },
-      }),
+      db.product.findMany({
+        where: { isActive: true },
+        select: { stockQuantity: true, minStockLevel: true },
+      }).then(products => products.filter(p => p.stockQuantity <= p.minStockLevel).length),
       db.sale.findMany({
         where: {
           createdAt: { gte: startDate, lte: endDate },
@@ -128,24 +124,18 @@ export async function GET(request: NextRequest) {
     }
     const dailySales = Array.from(dailyMap.values())
 
-    // Get low stock products details
-    const lowStockProductsDetails = await db.product.findMany({
-      where: {
-        isActive: true,
-        stockQuantity: {
-          lte: db.product.fields.minStockLevel,
-        },
-      },
+    const allProductsForLowStock = await db.product.findMany({
+      where: { isActive: true },
       include: {
         category: {
-          select: {
-            name: true,
-          },
+          select: { name: true },
         },
       },
       orderBy: { stockQuantity: 'asc' },
-      take: 10,
     })
+    const lowStockProductsDetails = allProductsForLowStock
+      .filter(p => p.stockQuantity <= p.minStockLevel)
+      .slice(0, 10)
 
     const totalInventoryValue = inventoryProducts.reduce(
       (sum: number, product: { stockQuantity: number, costPrice: number, sellingPrice: number }) => sum + (product.stockQuantity * product.costPrice),
