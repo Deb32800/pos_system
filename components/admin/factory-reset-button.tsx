@@ -17,17 +17,6 @@ import { toast } from "sonner"
 
 type Step = 'closed' | 'password' | 'confirm-text' | 'final-confirm'
 
-declare global {
-    interface Window {
-        electronAPI?: {
-            app?: {
-                factoryReset: () => Promise<{ success: boolean; error?: string }>
-                getUserDataPath: () => Promise<string>
-            }
-        }
-    }
-}
-
 export function FactoryResetButton() {
     const [step, setStep] = useState<Step>('closed')
     const [password, setPassword] = useState('')

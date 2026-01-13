@@ -23,6 +23,18 @@ export interface ElectronAPI {
   cashDrawer: {
     kick: (ip: string, port: string) => Promise<{ success: boolean; error?: string }>
   }
+  app: {
+    factoryReset: () => Promise<{ success: boolean; error?: string }>
+    getUserDataPath: () => Promise<string>
+    getInfo: () => Promise<{
+      version: string
+      platform: string
+      arch: string
+      userDataPath: string
+      isPackaged: boolean
+      port: number
+    }>
+  }
   platform: string
   isElectron: boolean
 }
@@ -33,4 +45,4 @@ declare global {
   }
 }
 
-export {}
+export { }
